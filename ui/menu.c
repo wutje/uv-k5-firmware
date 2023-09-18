@@ -448,71 +448,81 @@ void UI_DisplayMenu(void)
 
 	print_item(String, 2);
 
-	if (gMenuCursor == MENU_OFFSET) {
+        switch(gMenuCursor) {
+            case MENU_OFFSET:
                 print_item("Mhz", 4);
-	}
+                break;
 
-	if ((gMenuCursor == MENU_RESET || gMenuCursor == MENU_MEM_CH || gMenuCursor == MENU_DEL_CH) && gAskForConfirmation) {
-		if (gAskForConfirmation == 1) {
+            case MENU_MEM_CH:
+            case MENU_DEL_CH:
+                if( gAskForConfirmation) {
+                    if (gAskForConfirmation == 1) {
                         print_item("SURE?", 4);
-		} else {
+                    } else {
                         print_item("WAIT!", 4);
-		}
-	}
+                    }
+                }
+                break;
 
-	if ((gMenuCursor == MENU_R_CTCS || gMenuCursor == MENU_R_DCS) && gCssScanMode != CSS_SCAN_MODE_OFF) {
-		print_item("SCAN", 4);
-	}
+            case MENU_UPCODE:
+                if (strlen(gEeprom.DTMF_UP_CODE) > 8) {
+                    print_item(gEeprom.DTMF_UP_CODE + 8, 4);
+                }
+                break;
+            case MENU_DWCODE:
+                if (strlen(gEeprom.DTMF_DOWN_CODE) > 8) {
+                    print_item(gEeprom.DTMF_DOWN_CODE + 8, 4);
+                }
+                break;
 
-	if (gMenuCursor == MENU_UPCODE) {
-		if (strlen(gEeprom.DTMF_UP_CODE) > 8) {
-			print_item(gEeprom.DTMF_UP_CODE + 8, 4);
-		}
-	}
-	if (gMenuCursor == MENU_DWCODE) {
-		if (strlen(gEeprom.DTMF_DOWN_CODE) > 8) {
-			print_item(gEeprom.DTMF_DOWN_CODE + 8, 4);
-		}
-	}
-	if (gMenuCursor == MENU_D_LIST && gIsDtmfContactValid) {
-		Contact[11] = 0;
-		memcpy(&gDTMF_ID, Contact + 8, 4);
-		sprintf(String, "ID:%s", Contact + 8);
-                print_item(String, 4);
-	}
+            case MENU_R_CTCS:
+            case MENU_R_DCS:
+                if (gCssScanMode != CSS_SCAN_MODE_OFF) {
+                    print_item("SCAN", 4);
+                }
+                /* fall-through */
+            case MENU_T_CTCS:
+            case MENU_T_DCS:
+            case MENU_D_LIST:
+                {
+                    uint8_t Offset;
+                    if (gMenuCursor == MENU_D_LIST && gIsDtmfContactValid) {
+                        Contact[11] = 0;
+                        memcpy(&gDTMF_ID, Contact + 8, 4);
+                        sprintf(String, "ID:%s", Contact + 8);
+                        print_item(String, 4);
+                    }
+                    NUMBER_ToDigits((uint8_t)gSubMenuSelection, String);
+                    Offset = (gMenuCursor == MENU_D_LIST) ? 2 : 3;
+                    UI_DisplaySmallDigits(Offset, String + (8 - Offset), 105, 0);
+                }
+                break;
 
-	if (gMenuCursor == MENU_R_CTCS || gMenuCursor == MENU_T_CTCS ||
-		gMenuCursor == MENU_R_DCS || gMenuCursor == MENU_T_DCS || gMenuCursor == MENU_D_LIST) {
-			uint8_t Offset;
+            case MENU_SLIST1:
+            case MENU_SLIST2:
+                i = gMenuCursor - MENU_SLIST1;
 
-			NUMBER_ToDigits((uint8_t)gSubMenuSelection, String);
-			Offset = (gMenuCursor == MENU_D_LIST) ? 2 : 3;
-			UI_DisplaySmallDigits(Offset, String + (8 - Offset), 105, 0);
-	}
+                if (gSubMenuSelection == 0xFF) {
+                    sprintf(String, "NULL");
+                } else {
+                    UI_GenerateChannelStringEx(String, true, (uint8_t)gSubMenuSelection);
+                }
 
-	if (gMenuCursor == MENU_SLIST1 || gMenuCursor == MENU_SLIST2) {
-		i = gMenuCursor - MENU_SLIST1;
-
-		if (gSubMenuSelection == 0xFF) {
-			sprintf(String, "NULL");
-		} else {
-			UI_GenerateChannelStringEx(String, true, (uint8_t)gSubMenuSelection);
-		}
-
-		if (gSubMenuSelection == 0xFF || !gEeprom.SCAN_LIST_ENABLED[i]) {
-			print_item(String, 2);
-		} else {
-			print_item(String, 0);
-			if (IS_MR_CHANNEL(gEeprom.SCANLIST_PRIORITY_CH1[i])) {
-				sprintf(String, "PRI1:%d", gEeprom.SCANLIST_PRIORITY_CH1[i] + 1);
-                                print_item(String, 2);
-			}
-			if (IS_MR_CHANNEL(gEeprom.SCANLIST_PRIORITY_CH2[i])) {
-				sprintf(String, "PRI2:%d", gEeprom.SCANLIST_PRIORITY_CH2[i] + 1);
-                                print_item(String, 4);
-			}
-		}
-	}
+                if (gSubMenuSelection == 0xFF || !gEeprom.SCAN_LIST_ENABLED[i]) {
+                    print_item(String, 2);
+                } else {
+                    print_item(String, 0);
+                    if (IS_MR_CHANNEL(gEeprom.SCANLIST_PRIORITY_CH1[i])) {
+                        sprintf(String, "PRI1:%d", gEeprom.SCANLIST_PRIORITY_CH1[i] + 1);
+                        print_item(String, 2);
+                    }
+                    if (IS_MR_CHANNEL(gEeprom.SCANLIST_PRIORITY_CH2[i])) {
+                        sprintf(String, "PRI2:%d", gEeprom.SCANLIST_PRIORITY_CH2[i] + 1);
+                        print_item(String, 4);
+                    }
+                }
+                break;
+        }
 
 	ST7565_BlitFullScreen();
 }
